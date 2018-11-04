@@ -2,9 +2,10 @@
 This is a golang api for vector clocks to allow for partial ordering of events.
 
 ## API
-#####   newVectorClock(myIndex int, nodes []string)
+####   newVectorClock(myIndex int, nodes []string)
 
 **Creates a new vector clock**
+
 Parameters:
 * _myIndex(int)_: The index of the caller node within the slice of nodes
 * _nodes([]string)_: A slice of the nodes that will exist in the distributed system
@@ -13,14 +14,16 @@ Returns:
 * _vc(vectorClock)_: The newly created vector clock
 * _err(error)_: The error during creation if any
 
-##### (vc vectorClock) increment()
+#### (vc vectorClock) increment()
 **Increments the value for a single node within a vector clock** 
+
 Returns:
 * err(error): Errors if the node to be incremented does not exist within the vector clock
 
-##### (self vectorClock) merge(peer vectorClock)
+#### (self vectorClock) merge(peer vectorClock)
 
 **Merges two vector clocks together and updates the self vectorClock**
+
 Parameters:
 * _self,peer(vectorclock)_: The two vector clocks to be merged together
 
