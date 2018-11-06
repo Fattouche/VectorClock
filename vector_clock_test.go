@@ -1,7 +1,9 @@
 package main
 
 import (
+	"sync"
 	"testing"
+	"time"
 )
 
 func TestMerge(t *testing.T) {
@@ -74,6 +76,10 @@ func TestMax(t *testing.T) {
 	}
 }
 
+func clockCycle() {
+	time.Sleep(time.Millisecond * 100)
+}
+
 // This test is taken from https://en.wikipedia.org/wiki/Vector_clock
 // In a real distributed system this would be done in parallel, however this test is only concerned with the general correctness of the api.
 func TestOrdering(t *testing.T) {
@@ -81,41 +87,84 @@ func TestOrdering(t *testing.T) {
 	vc1, _ := newVectorClock(0, nodes)
 	vc2, _ := newVectorClock(1, nodes)
 	vc3, _ := newVectorClock(2, nodes)
-	// Node 3 does work
-	vc3.increment()
-	//Node 3 sends to node 2
-	vc2.increment()
-	vc2.merge(vc3)
-	//Node 2 does work
-	vc2.increment()
-	//Node 2 sends to node 1
-	vc1.merge(vc2)
-	vc1.increment()
-	//Node 1 does work
-	vc1.increment()
-	//Node 2 does work
-	vc2.increment()
-	//Node 2 sends to node 3
-	vc3.increment()
-	vc3.merge(vc2)
-	//Node 1 sends to node 2
-	vc2.increment()
-	vc2.merge(vc1)
-	//node 3 does work
-	vc3.increment()
-	//node 2 does work
-	vc2.increment()
-	//Node 3 sends to node 1
-	vc1.increment()
-	vc1.merge(vc3)
-	//Node 2 sends to node 3
-	vc3.increment()
-	vc3.merge(vc2)
-	//Node 3 does work
-	vc3.increment()
-	//Node 3 sends to node 1
-	vc1.increment()
-	vc1.merge(vc3)
+	wg := sync.WaitGroup{}
+	wg.Add(3)
+	//Node 3
+	go func() {
+		vc3.increment()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		vc3.increment()
+		vc3.merge(vc2)
+		clockCycle()
+		clockCycle()
+		vc3.increment()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		vc3.increment()
+		vc3.merge(vc2)
+		vc3.increment()
+		clockCycle()
+		clockCycle()
+		wg.Done()
+	}()
+	//Node 2
+	go func() {
+		clockCycle()
+		vc2.increment()
+		vc2.merge(vc3)
+		vc2.increment()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		vc2.increment()
+		clockCycle()
+		clockCycle()
+		vc2.increment()
+		vc2.merge(vc1)
+		clockCycle()
+		vc2.increment()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		wg.Done()
+	}()
+	//Node 1
+	go func() {
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		vc1.merge(vc2)
+		vc1.increment()
+		vc1.increment()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		vc1.increment()
+		vc1.merge(vc3)
+		clockCycle()
+		clockCycle()
+		clockCycle()
+		vc1.increment()
+		vc1.merge(vc3)
+		wg.Done()
+	}()
+	wg.Wait()
 	if vc1.vector[nodes[0]] != 4 || vc1.vector[nodes[1]] != 5 || vc1.vector[nodes[2]] != 5 {
 		t.Errorf("Incorrect values: Expected 4,5,5 but got %d,%d,%d", vc1.vector[nodes[0]], vc1.vector[nodes[1]], vc1.vector[nodes[2]])
 	}

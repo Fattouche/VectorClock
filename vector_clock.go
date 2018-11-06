@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 )
 
 // This is an api that allows distributed systems to manage vector clocks.
@@ -10,6 +11,7 @@ import (
 type vectorClock struct {
 	myNode string
 	vector map[string]int
+	mutex  sync.Mutex
 }
 
 // Merges two vector clocks together and updates the self vectorClock
@@ -19,6 +21,10 @@ type vectorClock struct {
 //			err(error): The error if the vector clocks cannot be merged
 
 func (self vectorClock) merge(peer vectorClock) (err error) {
+	peer.mutex.Lock()
+	defer peer.mutex.Unlock()
+	self.mutex.Lock()
+	defer self.mutex.Unlock()
 	if len(self.vector) != len(peer.vector) {
 		err = fmt.Errorf("vector clocks differ in length a: %d  b: %d", len(self.vector), len(peer.vector))
 		return
@@ -38,6 +44,8 @@ func (self vectorClock) merge(peer vectorClock) (err error) {
 //			err(error): Errors if the node to be incremented does not exist within the vector clock
 
 func (vc vectorClock) increment() {
+	vc.mutex.Lock()
+	defer vc.mutex.Unlock()
 	vc.vector[vc.myNode]++
 	return
 }
@@ -56,7 +64,7 @@ func newVectorClock(myIndex int, nodes []string) (vc vectorClock, err error) {
 		return
 	}
 	vector := make(map[string]int)
-	vc = vectorClock{nodes[myIndex], vector}
+	vc = vectorClock{nodes[myIndex], vector, sync.Mutex{}}
 	for _, node := range nodes {
 		vc.vector[node] = 0
 	}
