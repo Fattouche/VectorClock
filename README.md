@@ -1,6 +1,10 @@
 # VectorClock API
 This is a golang api for vector clocks to allow for partial ordering of events.
 
+## Testing
+
+`go test *.go`
+
 ## API
 ####   newVectorClock(myIndex int, nodes []string)
 
