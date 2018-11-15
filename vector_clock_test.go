@@ -82,7 +82,7 @@ func clockCycle() {
 
 // This test is taken from https://en.wikipedia.org/wiki/Vector_clock
 // In a real distributed system this would be done in parallel, however this test is only concerned with the general correctness of the api.
-func TestOrdering(t *testing.T) {
+func TestFullOne(t *testing.T) {
 	nodes := []string{"node1", "node2", "node3"}
 	vc1, _ := newVectorClock(0, nodes)
 	vc2, _ := newVectorClock(1, nodes)
@@ -167,5 +167,33 @@ func TestOrdering(t *testing.T) {
 	wg.Wait()
 	if vc1.vector[nodes[0]] != 4 || vc1.vector[nodes[1]] != 5 || vc1.vector[nodes[2]] != 5 {
 		t.Errorf("Incorrect values: Expected 4,5,5 but got %d,%d,%d", vc1.vector[nodes[0]], vc1.vector[nodes[1]], vc1.vector[nodes[2]])
+	}
+}
+
+func TestFullTwo(t *testing.T) {
+	nodes := []string{"P0", "P1", "P2"}
+	vc1, _ := newVectorClock(0, nodes)
+	vc2, _ := newVectorClock(1, nodes)
+	vc3, _ := newVectorClock(2, nodes)
+	vc1.increment()
+	vc2.increment()
+	vc3.increment()
+	vc1.increment()
+	vc2.merge(vc1)
+	vc1.increment()
+	vc1.merge(vc2)
+	vc2.increment()
+	vc1.increment()
+	vc3.increment()
+	vc1.merge(vc3)
+	vc3.increment()
+	vc3.merge(vc1)
+	vc1.increment()
+	vc1.increment()
+	vc2.merge(vc1)
+	vc2.increment()
+	vc1.increment()
+	if vc1.vector[nodes[0]] != 7 || vc1.vector[nodes[1]] != 1 || vc1.vector[nodes[2]] != 2 {
+		t.Errorf("Incorrect values: Expected 7,1,2 but got %d,%d,%d", vc1.vector[nodes[0]], vc1.vector[nodes[1]], vc1.vector[nodes[2]])
 	}
 }
